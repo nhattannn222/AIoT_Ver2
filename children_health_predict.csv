@@ -1,0 +1,13 @@
+age,gender,height,weight,heart_rate,spo2,temperature,accelerometer,prediction
+6,male,124,43,107,100.0,38.5,lying,danger
+6,male,124,43,107,100.0,38.5,lying,danger
+6,male,124,43,80,90.0,38.5,lying,danger
+11,male,124,43,80,90.0,38.5,lying,danger
+11,male,124,43,80,90.0,36.0,lying,danger
+11,male,124,43,80,90.0,36.0,sitting,danger
+11,male,147,33,80,90.0,36.0,moving,danger
+11,male,147,33,80,90.0,36.0,moving,danger
+11,male,147,33,80,95.5,36.0,moving,normal
+11,male,118,41,120,95.5,36.0,moving,danger
+11,male,118,41,120,95.5,36.0,falling,danger
+11,male,118,41,120,95.5,38.4,falling,warning
