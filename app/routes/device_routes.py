@@ -153,6 +153,11 @@ def get_data_device(deviceId):
         df.to_csv(file_path, index=False)
 
         data['prediction'] = prediction_result['prediction']
+        data['age'] = age
+        data['gender']= gender
+        data['height'] = userInfo.childHeight
+        data['weight'] = userInfo.childWeight
+
         
         return jsonify(data), 200
 
@@ -416,6 +421,73 @@ def notify(deviceId):
         print("Lỗi trong quá trình gọi API:", error)
         return jsonify({'error': "Đã xảy ra lỗi trong quá trình gọi API"}), 500
 
+@device_bp.route('/chart/<string:deviceId>', methods=['GET'])
+def chart(deviceId):
+    try:
+        checkToken()
+        userInfo = UserInfo.query.filter_by(deviceName=deviceId).first()
+
+        if not userInfo:
+            return jsonify({'message': 'Can not find user with this deviceId.'}), 400
+        # Data to send in the POST request
+        post_data = {
+        "tags": [
+            {
+            "nodeId": "8bab95f7-be6d-46c1-b55b-cfbe9e089c6a",
+            "deviceId": deviceId,
+            "tagName": "Temperature"
+            },
+        {
+            "nodeId": "8bab95f7-be6d-46c1-b55b-cfbe9e089c6a",
+            "deviceId": deviceId,
+            "tagName": "SpO2"
+            },
+        {
+            "nodeId": "8bab95f7-be6d-46c1-b55b-cfbe9e089c6a",
+            "deviceId": deviceId,
+            "tagName": "HeartRate"
+            }
+        ],
+            "startTs": "2024-11-08T02:16:48.912Z",
+            "endTs": "2024-11-08T02:18:48.912Z",
+            # "startTs": (datetime.now() - timedelta(minutes=3)).isoformat() + "Z",
+            # "endTs": datetime.now().isoformat() + "Z",
+            "desc": "true",
+            "count": 20
+        }
+
+        # Send POST request to the external API
+        external_api_url = "https://portal-datahub-24vn-ews.education.wise-paas.com/api/v1/HistData/raw"
+        
+        # Add Bearer Token to headers
+        headers = {
+            'Authorization': f'Bearer {EIToken}',  # Replace YOUR_ACCESS_TOKEN with your actual token
+            'Content-Type': 'application/json'
+        }
+        
+        # Use requests.post to send the request
+        response = requests.post(external_api_url, json=post_data, headers=headers)
+        response.raise_for_status()  # Check for HTTP errors
+
+        if response.status_code == 401:
+            checkToken()
+
+        response_data = response.json()  # Get JSON data from the response
+
+        data = merge_data(response_data)
+        
+
+        
+        return jsonify(data), 200
+
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+        return jsonify({'error': "Đã xảy ra lỗi HTTP trong quá trình gọi API"}), 500
+    except Exception as error:
+        print("Lỗi trong quá trình gọi API:", error)
+        return jsonify({'error': "Đã xảy ra lỗi trong quá trình gọi API"}), 500
+
+
 def merge_data(data):
     # Sử dụng defaultdict để lưu trữ giá trị theo timestamp
     merged_data = defaultdict(dict)
@@ -427,6 +499,7 @@ def merge_data(data):
         # Duyệt qua từng giá trị trong 'values'
         for value in item['values']:
             ts = value['ts']
+            
             merged_data[ts][tag_name] = value['value']
     
     # Chuyển defaultdict sang danh sách kết quả
