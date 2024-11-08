@@ -29,6 +29,10 @@ def login():
 @auth_bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
+    required_fields = ['deviceName', 'userName', 'password', 'parentName', 'phoneNumber', 'gender']
+    if not all(field in data and data[field] for field in required_fields):
+        return jsonify({'message': 'Missing required fields.'}), 400
+
 
     device_name = data.get('deviceName')
     username = data.get('userName')
@@ -40,9 +44,7 @@ def register():
     child_weight = data.get('childWeight')
     child_height = data.get('childHeight')
     child_birthday = data.get('childBirthday')
-
-    if not all([device_name, username, password, parent_name, phone_number]):
-        return jsonify({'message': 'Missing required fields.'}), 400
+    gender = data.get('gender')
 
     existing_device = Device.query.filter_by(deviceName=device_name).first()
     if existing_device:
@@ -59,7 +61,8 @@ def register():
         email=email,
         childWeight=child_weight,
         childHeight=child_height,
-        childBirthday=child_birthday
+        childBirthday=child_birthday,
+        gender=gender
     )
 
     try:

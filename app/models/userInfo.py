@@ -13,6 +13,7 @@ class UserInfo(db.Model):
     childWeight = db.Column(db.Float, nullable=True)
     childHeight = db.Column(db.Float, nullable=True)
     childBirthday = db.Column(db.Date, nullable=True)
+    gender = db.Column(db.String(10), nullable=True)
 
     # Define a relationship with the Device model
     device = db.relationship('Device', backref='user_info', lazy=True)
@@ -27,4 +28,5 @@ class UserInfo(db.Model):
             'childWeight': self.childWeight,
             'childHeight': self.childHeight,
             'childBirthday': self.childBirthday,
+            'gender': self.gender
         }
