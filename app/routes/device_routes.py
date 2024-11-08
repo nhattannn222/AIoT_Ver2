@@ -164,6 +164,62 @@ def get_data_device(deviceId):
         print("Lỗi trong quá trình gọi API:", error)
         return jsonify({'error': "Đã xảy ra lỗi trong quá trình gọi API"}), 500
 
+@device_bp.route('/location/<string:deviceId>', methods=['GET'])
+def get_location(deviceId):
+    try:
+        checkToken()
+        userInfo = UserInfo.query.filter_by(deviceName=deviceId).first()
+
+        if not userInfo:
+            return jsonify({'message': 'Can not find user with this deviceId.'}), 400
+        # Data to send in the POST request
+        post_data = [
+            {
+                "nodeId": "8bab95f7-be6d-46c1-b55b-cfbe9e089c6a",
+                "deviceId": deviceId,
+                "tagName": "Longitude"
+            },
+            {
+                "nodeId": "8bab95f7-be6d-46c1-b55b-cfbe9e089c6a",
+                "deviceId": deviceId,
+                "tagName": "Latitude"
+            }
+        ]
+
+        # Send POST request to the external API
+        external_api_url = "https://portal-datahub-24vn-ews.education.wise-paas.com/api/v1/RealData/raw"
+        
+        # Add Bearer Token to headers
+        headers = {
+            'Authorization': f'Bearer {EIToken}',  # Replace YOUR_ACCESS_TOKEN with your actual token
+            'Content-Type': 'application/json'
+        }
+        
+        # Use requests.post to send the request
+        response = requests.post(external_api_url, json=post_data, headers=headers)
+        response.raise_for_status()  # Check for HTTP errors
+
+        if response.status_code == 401:
+            checkToken()
+
+        response_data = response.json()  # Get JSON data from the response
+
+        
+        
+        data = combine_health_data(response_data)
+        
+       
+        
+        return jsonify(data), 200
+
+
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+        return jsonify({'error': "Đã xảy ra lỗi HTTP trong quá trình gọi API"}), 500
+    except Exception as error:
+        print("Lỗi trong quá trình gọi API:", error)
+        return jsonify({'error': "Đã xảy ra lỗi trong quá trình gọi API"}), 500
+
 @device_bp.route('/notify/<string:deviceId>', methods=['GET'])
 def notify(deviceId):
     try:
