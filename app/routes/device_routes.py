@@ -24,8 +24,8 @@ preprocessor = joblib.load(preprocessor_path)
 label_encoder = joblib.load(label_encoder_path)
 
 EIToken = ""
-username = ""
-password = ""
+username = "20050013@student.bdu.edu.vn"
+password = "087404be@Ss0"
 API_LOGIN_URL = "https://portal-datahub-24vn-ews.education.wise-paas.com/api/v1/Auth"
 
 def checkToken():
@@ -168,6 +168,91 @@ def get_data_device(deviceId):
     except Exception as error:
         print("Lỗi trong quá trình gọi API:", error)
         return jsonify({'error': "Đã xảy ra lỗi trong quá trình gọi API"}), 500
+
+@device_bp.route('/infoData/<string:deviceId>', methods=['POST'])
+def getInfoData(deviceId):
+    try:
+        current_data = request.get_json() 
+        current_ts = current_data['ts']
+        current_time = datetime.fromisoformat(current_ts.replace("Z", ""))
+
+        checkToken()
+        userInfo = UserInfo.query.filter_by(deviceName=deviceId).first()
+
+        if not userInfo:
+            return jsonify({'message': 'Can not find user with this deviceId.'}), 400
+        # Data to send in the POST request
+        fifteen_minutes = {
+        "tags": [
+            {
+            "nodeId": "8bab95f7-be6d-46c1-b55b-cfbe9e089c6a",
+            "deviceId": deviceId,
+            "tagName": "Temperature"
+            },
+            {
+            "nodeId": "8bab95f7-be6d-46c1-b55b-cfbe9e089c6a",
+            "deviceId": deviceId,
+            "tagName": "SpO2"
+            },
+            {
+            "nodeId": "8bab95f7-be6d-46c1-b55b-cfbe9e089c6a",
+            "deviceId": deviceId,
+            "tagName": "HeartRate"
+            }
+        ],
+        "startTs": (current_time - timedelta(minutes=15)).isoformat(timespec='milliseconds') + "Z",
+        "endTs": (current_time).isoformat(timespec='milliseconds') + "Z",
+        "desc": "false",
+        "count": 1
+        }
+
+        # Send POST request to the external API
+        external_api_url = "https://portal-datahub-24vn-ews.education.wise-paas.com/api/v1/HistData/raw"
+        
+        # Add Bearer Token to headers
+        headers = {
+            'Authorization': f'Bearer {EIToken}',  # Replace YOUR_ACCESS_TOKEN with your actual token
+            'Content-Type': 'application/json'
+        }
+        
+        # Use requests.post to send the request
+        fifteen_response = requests.post(external_api_url, json=fifteen_minutes, headers=headers)
+        fifteen_response.raise_for_status()  # Check for HTTP errors
+
+        if fifteen_response.status_code == 401:
+            checkToken()
+
+        fifteen_response_data = fifteen_response.json()  # Get JSON data from the response
+
+        data = merge_data(fifteen_response_data)
+
+        result = ''
+
+        if current_data['Temperature'] > data[0]['Temperature']:
+            result += f"Nhiệt độ đang tăng từ {data[0]['Temperature']} đến {current_data['Temperature']}."
+        elif current_data['Temperature'] < data[0]['Temperature']:
+            result += f"Nhiệt độ đang giảm từ {data[0]['Temperature']} đến {current_data['Temperature']}."
+
+        if current_data['SpO2'] > data[0]['SpO2']:
+            result += f"|SpO2 đang tăng từ {data[0]['SpO2']} đến {current_data['SpO2']}."
+        elif current_data['SpO2'] < data[0]['SpO2']:
+            result += f"|SpO2 đang giảm từ {data[0]['SpO2']} đến {current_data['SpO2']}."
+
+        if current_data['HeartRate'] > data[0]['HeartRate']:
+            result += f"|Nhịp tim đang tăng từ {data[0]['HeartRate']} đến {current_data['HeartRate']}."
+        elif current_data['HeartRate'] < data[0]['HeartRate']:
+            result += f"|Nhịp tim đang giảm từ {data[0]['HeartRate']} đến {current_data['HeartRate']}."
+
+        return jsonify(result), 200
+
+
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+        return jsonify({'error': "Đã xảy ra lỗi HTTP trong quá trình gọi API"}), 500
+    except Exception as error:
+        print("Lỗi trong quá trình gọi API:", error)
+        return jsonify({'error': "Đã xảy ra lỗi trong quá trình gọi API"}), 500
+
 
 @device_bp.route('/location/<string:deviceId>', methods=['GET'])
 def get_location(deviceId):
@@ -479,6 +564,52 @@ def chart(deviceId):
 
         
         return jsonify(data), 200
+
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+        return jsonify({'error': "Đã xảy ra lỗi HTTP trong quá trình gọi API"}), 500
+    except Exception as error:
+        print("Lỗi trong quá trình gọi API:", error)
+        return jsonify({'error': "Đã xảy ra lỗi trong quá trình gọi API"}), 500
+
+@device_bp.route('/status/<string:deviceId>', methods=['GET'])
+def status(deviceId):
+    try:
+        checkToken()
+        userInfo = UserInfo.query.filter_by(deviceName=deviceId).first()
+
+        if not userInfo:
+            return jsonify({'message': 'Can not find user with this deviceId.'}), 400
+        # Data to send in the POST request
+        post_data = [
+        {
+            "nodeId": "8bab95f7-be6d-46c1-b55b-cfbe9e089c6a",
+            "deviceId": f"{deviceId}"
+        }
+        ]
+
+        # Send POST request to the external API
+        external_api_url = "https://portal-datahub-24vn-ews.education.wise-paas.com/api/v1/Statuses/device"
+        
+        # Add Bearer Token to headers
+        headers = {
+            'Authorization': f'Bearer {EIToken}',  # Replace YOUR_ACCESS_TOKEN with your actual token
+            'Content-Type': 'application/json'
+        }
+        
+        # Use requests.post to send the request
+        response = requests.post(external_api_url, json=post_data, headers=headers)
+        response.raise_for_status()  # Check for HTTP errors
+
+        if response.status_code == 401:
+            checkToken()
+
+        response_data = response.json()  # Get JSON data from the response
+
+        
+
+        
+        return jsonify(response_data), 200
 
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
