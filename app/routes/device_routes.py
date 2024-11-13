@@ -24,8 +24,8 @@ preprocessor = joblib.load(preprocessor_path)
 label_encoder = joblib.load(label_encoder_path)
 
 EIToken = ""
-username = ""
-password = ""
+username = "20050013@student.bdu.edu.vn"
+password = "087404be@Ss0"
 API_LOGIN_URL = "https://portal-datahub-24vn-ews.education.wise-paas.com/api/v1/Auth"
 
 def checkToken():
@@ -310,14 +310,19 @@ def get_location(deviceId):
         print("Lỗi trong quá trình gọi API:", error)
         return jsonify({'error': "Đã xảy ra lỗi trong quá trình gọi API"}), 500
 
-@device_bp.route('/notify/<string:deviceId>', methods=['GET'])
+@device_bp.route('/notify/<string:deviceId>', methods=['POST'])
 def notify(deviceId):
     try:
         checkToken()
         userInfo = UserInfo.query.filter_by(deviceName=deviceId).first()
-
         if not userInfo:
             return jsonify({'message': 'Can not find user with this deviceId.'}), 400
+        
+        data = request.get_json() 
+        startTs = data['startTs'] 
+        endTs = data['endTs'] 
+        if not startTs or not endTs:
+            return jsonify({'message': 'Invalid Input. Required: startTs, endTs'}), 400
         # Data to send in the POST request
         post_data = {
         "tags": [
@@ -342,10 +347,8 @@ def notify(deviceId):
             "tagName": "Accelerometer"
             }
         ],
-            "startTs": "2024-11-08T02:16:48.912Z",
-            "endTs": "2024-11-08T02:18:48.912Z",
-            # "startTs": (datetime.now() - timedelta(minutes=3)).isoformat() + "Z",
-            # "endTs": datetime.now().isoformat() + "Z",
+            "startTs": startTs,
+            "endTs": endTs,
             "desc": "true",
             "count": 20
         }
@@ -506,7 +509,7 @@ def notify(deviceId):
         print("Lỗi trong quá trình gọi API:", error)
         return jsonify({'error': "Đã xảy ra lỗi trong quá trình gọi API"}), 500
 
-@device_bp.route('/chart/<string:deviceId>', methods=['GET'])
+@device_bp.route('/chart/<string:deviceId>', methods=['POST'])
 def chart(deviceId):
     try:
         checkToken()
@@ -514,6 +517,13 @@ def chart(deviceId):
 
         if not userInfo:
             return jsonify({'message': 'Can not find user with this deviceId.'}), 400
+        
+        
+        data = request.get_json() 
+        startTs = data['startTs'] 
+        endTs = data['endTs'] 
+        if not startTs or not endTs:
+            return jsonify({'message': 'Invalid input. Required: startTs, endTs'}), 400
         # Data to send in the POST request
         post_data = {
         "tags": [
@@ -533,11 +543,9 @@ def chart(deviceId):
             "tagName": "HeartRate"
             }
         ],
-            "startTs": "2024-11-08T02:16:48.912Z",
-            "endTs": "2024-11-08T02:18:48.912Z",
-            # "startTs": (datetime.now() - timedelta(minutes=3)).isoformat() + "Z",
-            # "endTs": datetime.now().isoformat() + "Z",
-            "desc": "true",
+            "startTs": startTs,
+            "endTs": endTs,
+            "desc": "false",
             "count": 20
         }
 
