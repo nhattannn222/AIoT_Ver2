@@ -24,8 +24,8 @@ preprocessor = joblib.load(preprocessor_path)
 label_encoder = joblib.load(label_encoder_path)
 
 EIToken = ""
-username = "20050013@student.bdu.edu.vn"
-password = "087404be@Ss0"
+username = ""
+password = ""
 API_LOGIN_URL = "https://portal-datahub-24vn-ews.education.wise-paas.com/api/v1/Auth"
 
 def checkToken():
